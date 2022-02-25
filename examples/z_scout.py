@@ -15,7 +15,6 @@ import time
 import argparse
 import zenoh
 from zenoh import WhatAmI
-
 # initiate logging
 zenoh.init_logger()
 

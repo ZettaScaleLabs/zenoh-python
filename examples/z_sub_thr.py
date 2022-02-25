@@ -16,7 +16,7 @@ import datetime
 import argparse
 import json
 import zenoh
-from zenoh import  Reliability, SubMode
+from zenoh import Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -26,16 +26,16 @@ parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
                     help='The zenoh session mode.')
-parser.add_argument('--peer', '-e', dest='peer',
-                    metavar='LOCATOR',
+parser.add_argument('--connect', '-c', dest='connect',
+                    metavar='ENDPOINT',
                     action='append',
                     type=str,
-                    help='Peer locators used to initiate the zenoh session.')
-parser.add_argument('--listener', '-l', dest='listener',
-                    metavar='LOCATOR',
+                    help='Endpoints to connect to.')
+parser.add_argument('--listen', '-l', dest='listen',
+                    metavar='ENDPOINT',
                     action='append',
                     type=str,
-                    help='Locators to listen on.')
+                    help='Endpoints to listen on.')
 parser.add_argument('--samples', '-s', dest='samples',
                     default=10,
                     metavar='NUMBER',
@@ -48,23 +48,22 @@ parser.add_argument('--number', '-n', dest='number',
                     action='append',
                     type=int,
                     help='Number of messages in each throughput measurements.')
-parser.add_argument('--config', '-c', dest='config',
+parser.add_argument('--config', '-f', dest='config',
                     metavar='FILE',
                     type=str,
-                    help='A configuration file.')
+                    help='The configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+conf = zenoh.config_from_file(
+    args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5("mode", json.dumps(args.mode))
-if args.peer is not None:
-    conf.insert_json5("peers", json.dumps(args.peer))
-if args.listener is not None:
-    conf.insert_json5("listeners", json.dumps(args.listener))
+if args.connect is not None:
+    conf.insert_json5("connect/endpoints", json.dumps(args.connect))
+if args.listen is not None:
+    conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 m = args.samples
 n = args.number
-
-# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
 def print_stats(start):
@@ -99,7 +98,8 @@ session = zenoh.open(conf)
 
 rid = session.declare_expr('/test/thr')
 
-sub = session.subscribe(rid, listener, reliablity=Reliability.Reliable, mode=SubMode.Push)
+sub = session.subscribe(
+    rid, listener, reliablity=Reliability.Reliable, mode=SubMode.Push)
 
 time.sleep(600)
 

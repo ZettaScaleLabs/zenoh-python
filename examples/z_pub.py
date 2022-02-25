@@ -26,16 +26,16 @@ parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
                     help='The zenoh session mode.')
-parser.add_argument('--peer', '-e', dest='peer',
-                    metavar='LOCATOR',
+parser.add_argument('--connect', '-c', dest='connect',
+                    metavar='ENDPOINT',
                     action='append',
                     type=str,
-                    help='Peer locators used to initiate the zenoh session.')
-parser.add_argument('--listener', '-l', dest='listener',
-                    metavar='LOCATOR',
+                    help='Endpoints to connect to.')
+parser.add_argument('--listen', '-l', dest='listen',
+                    metavar='ENDPOINT',
                     action='append',
                     type=str,
-                    help='Locators to listen on.')
+                    help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
                     default='/demo/example/zenoh-python-pub',
                     type=str,
@@ -44,29 +44,29 @@ parser.add_argument('--value', '-v', dest='value',
                     default='Pub from Python!',
                     type=str,
                     help='The value to publish.')
-parser.add_argument("--iter", dest="iter", type=int, help="How many puts to perform")
-parser.add_argument('--config', '-c', dest='config',
+parser.add_argument("--iter", dest="iter", type=int,
+                    help="How many puts to perform")
+parser.add_argument('--config', '-f', dest='config',
                     metavar='FILE',
                     type=str,
-                    help='A configuration file.')
+                    help='The configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+conf = zenoh.config_from_file(
+    args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5("mode", json.dumps(args.mode))
-if args.peer is not None:
-    conf.insert_json5("peers", json.dumps(args.peer))
-if args.listener is not None:
-    conf.insert_json5("listeners", json.dumps(args.listener))
+if args.connect is not None:
+    conf.insert_json5("connect/endpoints", json.dumps(args.connect))
+if args.listen is not None:
+    conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 key = args.key
 value = args.value
-
-# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 # initiate logging
 zenoh.init_logger()
 
-print("Openning session...")
+print("Opening session...")
 session = zenoh.open(conf)
 
 print("Declaring key expression '{}'...".format(key), end='')

@@ -19,6 +19,7 @@ import zenoh
 from zenoh import config, Sample
 from zenoh.queryable import EVAL
 
+
 async def main():
     # --- Command line argument parsing --- --- --- --- --- ---
     parser = argparse.ArgumentParser(
@@ -52,21 +53,21 @@ async def main():
                         help='A configuration file.')
 
     args = parser.parse_args()
-    conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+    conf = zenoh.config_from_file(
+        args.config) if args.config is not None else zenoh.Config()
     if args.mode is not None:
         conf.insert_json5("mode", json.dumps(args.mode))
-    if args.peer is not None:
-        conf.insert_json5("peers", json.dumps(args.peer))
+    if args.connect is not None:
+        conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listener is not None:
         conf.insert_json5("listeners", json.dumps(args.listener))
     key = args.key
     value = args.value
 
-    # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
-
     # Note: As an example the concrete implementation of the eval callback is implemented here as a coroutine.
     #       It checks if the query's value_selector (the substring after '?') is a float, and if yes, sleeps for this number of seconds.
     #       Run example/asyncio/z_get_parallel.py example to see how 3 concurrent get() are executed in parallel in this z_eval.py
+
     async def eval_corouting(query):
         opt = query.value_selector[1:]
         try:
@@ -76,7 +77,8 @@ async def main():
         except ValueError:
             pass
         print("  Replying to query on {}".format(query.selector))
-        reply = "{} (this is the reply to query on {})".format(value, query.selector)
+        reply = "{} (this is the reply to query on {})".format(
+            value, query.selector)
         query.reply(Sample(key_expr=key, payload=reply.encode()))
 
     async def eval_callback(query):
@@ -87,7 +89,7 @@ async def main():
     # initiate logging
     zenoh.init_logger()
 
-    print("Openning session...")
+    print("Opening session...")
     session = await zenoh.async_open(conf)
 
     print("Creating Queryable on '{}'...".format(key))

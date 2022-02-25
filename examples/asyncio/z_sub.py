@@ -19,6 +19,7 @@ import json
 import zenoh
 from zenoh import Reliability, SubMode
 
+
 async def main():
     # --- Command line argument parsing --- --- --- --- --- ---
     parser = argparse.ArgumentParser(
@@ -48,29 +49,26 @@ async def main():
                         help='A configuration file.')
 
     args = parser.parse_args()
-    conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+    conf = zenoh.config_from_file(
+        args.config) if args.config is not None else zenoh.Config()
     if args.mode is not None:
         conf.insert_json5("mode", json.dumps(args.mode))
-    if args.peer is not None:
-        conf.insert_json5("peers", json.dumps(args.peer))
+    if args.connect is not None:
+        conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listener is not None:
         conf.insert_json5("listeners", json.dumps(args.listener))
     key = args.key
-
-    # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
-
 
     async def listener(sample):
         time = '(not specified)' if sample.source_info is None or sample.timestamp is None else datetime.fromtimestamp(
             sample.timestamp.time)
         print(">> [Subscriber] Received {} ('{}': '{}')"
-            .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8"), time))
-
+              .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8"), time))
 
     # initiate logging
     zenoh.init_logger()
 
-    print("Openning session...")
+    print("Opening session...")
     session = await zenoh.async_open(conf)
 
     print("Creating Subscriber on '{}'...".format(key))

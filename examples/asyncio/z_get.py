@@ -18,6 +18,7 @@ import json
 import zenoh
 from zenoh import config, queryable, QueryTarget, Target
 
+
 async def main():
     # --- Command line argument parsing --- --- --- --- --- ---
     parser = argparse.ArgumentParser(
@@ -47,7 +48,8 @@ async def main():
                         type=str,
                         help='The KIND of queryables to query.')
     parser.add_argument('--target', '-t', dest='target',
-                        choices=['ALL', 'BEST_MATCHING', 'ALL_COMPLETE', 'NONE'],
+                        choices=['ALL', 'BEST_MATCHING',
+                                 'ALL_COMPLETE', 'NONE'],
                         default='ALL',
                         type=str,
                         help='The target queryables of the query.')
@@ -57,11 +59,12 @@ async def main():
                         help='A configuration file.')
 
     args = parser.parse_args()
-    conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+    conf = zenoh.config_from_file(
+        args.config) if args.config is not None else zenoh.Config()
     if args.mode is not None:
         conf.insert_json5("mode", json.dumps(args.mode))
-    if args.peer is not None:
-        conf.insert_json5("peers", json.dumps(args.peer))
+    if args.connect is not None:
+        conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listener is not None:
         conf.insert_json5("listeners", json.dumps(args.listener))
     selector = args.selector
@@ -75,19 +78,17 @@ async def main():
         'ALL_COMPLETE': Target.AllComplete(),
         'NONE': Target.No()}.get(args.target)
 
-    # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
-
     # initiate logging
     zenoh.init_logger()
 
-    print("Openning session...")
+    print("Opening session...")
     session = await zenoh.async_open(conf)
 
     print("Sending Query '{}'...".format(selector))
     replies = await session.get(selector, target=QueryTarget(kind, target))
     for reply in replies:
         print(">> Received ('{}': '{}')"
-            .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))
+              .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))
 
     await session.close()
 
