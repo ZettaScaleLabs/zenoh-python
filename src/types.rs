@@ -43,13 +43,13 @@ impl config {
     }
 
     #[classattr]
-    pub fn ZN_PEER_KEY() -> ZInt {
-        zenoh::config::ZN_PEER_KEY
+    pub fn ZN_CONNECT_KEY() -> ZInt {
+        zenoh::config::ZN_CONNECT_KEY
     }
 
     #[classattr]
-    pub fn ZN_LISTENER_KEY() -> ZInt {
-        zenoh::config::ZN_LISTENER_KEY
+    pub fn ZN_LISTEN_KEY() -> ZInt {
+        zenoh::config::ZN_LISTEN_KEY
     }
 
     #[classattr]
