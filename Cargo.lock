@@ -3334,6 +3334,7 @@ dependencies = [
  "validated_struct",
  "zenoh",
  "zenoh-buffers",
+ "zenoh-collections",
  "zenoh-core",
 ]
 

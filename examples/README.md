@@ -88,6 +88,24 @@ or
       python3 z_sub.py -k 'demo/**'
    ```
 
+### z_pull
+
+Creates a subscriber with a key expression and using RingBuffer.
+The subscriber will receive the last N messages matching the key
+expression and will print the received key/value.
+
+Typical usage:
+
+   ```bash
+      python3 z_pull.py
+   ```
+
+or
+
+   ```bash
+      python3 z_pull.py -k 'demo/**' --size 3 --interval 5
+   ```
+
 ### z_get
 
 Sends a query message for a selector.

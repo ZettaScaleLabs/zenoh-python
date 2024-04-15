@@ -21,6 +21,7 @@ use pyo3::{
     types::{PyList, PyTuple},
 };
 use zenoh::handlers::IntoHandler;
+use zenoh_collections::RingBuffer as RingBufferInner;
 
 trait CallbackUnwrap {
     type Output;
@@ -182,5 +183,31 @@ impl _Queue {
     }
     pub fn is_closed(&self) -> bool {
         self.send.lock().unwrap().is_none()
+    }
+}
+
+#[pyclass(subclass)]
+pub struct _RingBuffer {
+    ring: Arc<Mutex<RingBufferInner<PyObject>>>,
+}
+#[pymethods]
+impl _RingBuffer {
+    #[new]
+    pub fn pynew(capacity: usize) -> Self {
+        _RingBuffer {
+            ring: Arc::new(Mutex::new(RingBufferInner::new(capacity))),
+        }
+    }
+    pub fn push_force(&self, value: PyObject, py: Python<'_>) -> PyResult<()> {
+        Python::allow_threads(py, || {
+            self.ring.lock().unwrap().push_force(value);
+            Ok(())
+        })
+    }
+    pub fn pull(&self, py: Python<'_>) -> PyResult<PyObject> {
+        Python::allow_threads(py, || match self.ring.lock().unwrap().pull() {
+            Some(value) => Ok(value),
+            None => Err(pyo3::exceptions::PyStopIteration::new_err(())),
+        })
     }
 }

@@ -17,7 +17,7 @@ from threading import Condition, Thread
 from collections import deque
 import time
 
-from .zenoh import _Queue
+from .zenoh import _Queue, _RingBuffer
 
 In = TypeVar("In")
 Out = TypeVar("Out")
@@ -248,6 +248,53 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
         return self
     def __next__(self):
         return self.get()
+
+
+class RingBuffer(IHandler[In, None, 'RingBuffer'], Generic[In]):
+    """
+    A binding for Zenoh ringbuffer implementation
+
+    When used as a handler, it provides itself as the receiver, and will provide a
+    callback that appends elements to the ringbuffer.
+
+    Users can assign ``capacity`` to RingBuffer, which means the oldest message will
+    be overwritten if the number is over the capacity. 
+    """
+    def __init__(self, capacity: int = 10):
+        self.__inner__ = _RingBuffer(capacity)
+
+    @property
+    def closure(self) -> IClosure[In, None]:
+        def call(x): self.push_force(x)
+        # We don't need drop while using ringbuffer
+        return Closure((call, None))
+
+    @property
+    def receiver(self) -> 'RingBuffer':
+        return self
+
+    def push_force(self, value):
+        """
+        Push one element into ringbuffer.
+
+        If the capacity is full, the oldest one will be overwritten.
+        """
+        self.__inner__.push_force(value)
+
+    def pull(self):
+        """
+        Gets one element from the ringbuffer.
+
+        Raise a ``StopIteration`` exception if the ringbuffer is empty.
+        """
+        return self.__inner__.pull()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.pull()
+
 
 if __name__ == "__main__":
     def get(collector):

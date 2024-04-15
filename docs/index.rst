@@ -192,4 +192,4 @@ Timestamp
     :members:
 
 .. automodule:: zenoh
-    :members: Queue, ListCollector, Closure, Handler, IClosure, IHandler, IValue
+    :members: Queue, RingBuffer, ListCollector, Closure, Handler, IClosure, IHandler, IValue
