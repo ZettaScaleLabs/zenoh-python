@@ -70,6 +70,8 @@ class Pyrun:
 
 errors = []
 
+# Test z_info & z_scout
+print("=> Test z_info & z_scout")
 info = Pyrun("z_info.py")
 if info.status():
 	info.dbg()
@@ -79,19 +81,12 @@ if scout.status():
 	scout.dbg()
 	errors.append(scout.status())
 
-storage = Pyrun("z_storage.py")
-sub = Pyrun("z_sub.py")
-time.sleep(1)
-put = Pyrun("z_put.py")
-if put.status():
-	put.dbg()
-	errors.append(put.status())
-time.sleep(1)
-pub = Pyrun("z_pub.py", ["--iter=2"])
-time.sleep(4)
-
+# Test z_get & z_queryable
+print("=> Test z_get & z_queryable")
+## Run z_queryable
 queryable = Pyrun("z_queryable.py", ["-k=demo/example/zenoh-python-queryable"])
 time.sleep(1)
+## z_get: Able to get reply from queryable
 get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-queryable"])
 if get.status():
 	get.dbg()
@@ -100,7 +95,7 @@ if not ("Received ('demo/example/zenoh-python-queryable': 'Queryable from Python
 	get.dbg()
 	queryable.dbg()
 	errors.append("z_get didn't get a response from z_queryable")
-
+## Stop z_queryable
 queryable.interrupt()
 if queryable.status(KILL):
 	queryable.dbg()
@@ -111,7 +106,21 @@ if not ("Received Query 'demo/example/zenoh-python-queryable'" in queryableout):
 if any(("z_queryable" in error) for error in errors):
 	queryable.dbg()
 
+# Test z_storage & z_sub
+print("=> Test z_storage & z_sub")
+storage = Pyrun("z_storage.py")
+sub = Pyrun("z_sub.py")
 time.sleep(1)
+## z_put: Put one message (to storage & sub)
+put = Pyrun("z_put.py")
+if put.status():
+	put.dbg()
+	errors.append(put.status())
+time.sleep(1)
+## z_pub: Put two messages (to storage & sub)
+pub = Pyrun("z_pub.py", ["--iter=2"])
+time.sleep(4)
+## z_get: Able to get put from storage
 get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-put"])
 if get.status():
 	get.dbg()
@@ -121,14 +130,14 @@ if not ("Received ('demo/example/zenoh-python-put': 'Put from Python!')" in "".j
 	errors.append("z_get didn't get a response from z_storage about put")
 if any(("z_get" in error) for error in errors):
 	get.dbg()
-
 time.sleep(1)
+## z_delete: Delete put in storage
 delete = Pyrun("z_delete.py")
 if delete.status():
 	delete.dbg()
 	errors.append(delete.status())
-
 time.sleep(1)
+## z_get: Unable to get put from storage
 get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-put"])
 if get.status():
 	get.dbg()
@@ -138,7 +147,8 @@ if ("Received ('demo/example/zenoh-python-put': 'Put from Python!')" in "".join(
 	errors.append("z_get did get a response from z_storage about put after delete")
 if any(("z_get" in error) for error in errors):
 	get.dbg()
-
+time.sleep(1)
+## z_sub: Should receive put, pub and delete
 sub.interrupt()
 if sub.status(KILL):
 	sub.dbg()
@@ -152,7 +162,7 @@ if not ("Received DELETE ('demo/example/zenoh-python-put': '')" in subout):
 	errors.append("z_sub didn't catch delete")
 if any(("z_sub" in error) for error in errors):
 	sub.dbg()
-
+## z_storage: Should receive put, pub, delete, and query
 storage.interrupt()
 if storage.status(KILL):
 	storage.dbg()
@@ -169,6 +179,40 @@ if not ("Received Query 'demo/example/zenoh-python-put'" in storageout):
 if any(("z_storage" in error) for error in errors):
 	storage.dbg()
 
+# Test z_pull & s_sub_queued
+print("=> Test z_pull & z_sub_queued")
+## Run z_pull and z_sub_queued
+sub_queued = Pyrun("z_sub_queued.py")
+time.sleep(1)
+pull = Pyrun("z_pull.py", ["--size=1", "--interval=5"])
+time.sleep(1)
+## z_pub: Put two messages (to storage & sub)
+pub = Pyrun("z_pub.py", ["--iter=2"])
+time.sleep(4)
+## z_sub_queued: Should receive two messages
+sub_queued.interrupt()
+if sub_queued.status(KILL):
+	sub_queued.dbg()
+	errors.append(sub_queued.status(KILL))
+sub_queued_out = "".join(sub_queued.stdout)
+if not ("Received PUT ('demo/example/zenoh-python-pub': '[   0] Pub from Python!')" in sub_queued_out):
+	errors.append("z_sub_queued didn't catch the first z_pub")
+if not ("Received PUT ('demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in sub_queued_out):
+	errors.append("z_sub_queued didn't catch the second z_pub")
+if any(("z_sub_queued" in error) for error in errors):
+	sub_queued.dbg()
+## z_pull: Should only receive the last messages
+pull.interrupt()
+pullout = "".join(pull.stdout)
+if ("Received PUT ('demo/example/zenoh-python-pub': '[   0] Pub from Python!')" in pullout):
+	errors.append("z_pull shouldn't catch the old z_pub")
+if not ("Received PUT ('demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in pullout):
+	errors.append("z_pull didn't catch the last z_pub")
+if any(("z_pull" in error) for error in errors):
+	pull.dbg()
+
+# Test z_sub_thr & z_pub_thr
+print("=> Test z_sub_thr & z_pub_thr")
 sub_thr = Pyrun("z_sub_thr.py")
 pub_thr = Pyrun("z_pub_thr.py", ["128"])
 time.sleep(5)
@@ -185,3 +229,5 @@ if pub_thr.status(KILL):
 if len(errors):
 	message = f"Found {len(errors)} errors: {(ret+tab) + (ret+tab).join(errors)}"
 	raise Exception(message)
+else:
+	print("Pass examples_check")
